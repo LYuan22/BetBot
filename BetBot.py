@@ -38,17 +38,18 @@ c.execute("""CREATE TABLE IF NOT EXISTS
 bets(playerid TEXT, amount INTEGER, gameid INTEGER, team TEXT, betodds FLOAT)""")
 
 def update_player_db(player):
-    dict = {'id': player.get_id(), 'money': player.get_money(), 'betwins': player.get_betwins(),
-                    'betlosses': player.get_betlosses(), 'coinwins': player.get_coinwins,
+    dict = {'id': str(player.get_id()), 'money': player.get_money(), 'betwins': player.get_betwins(),
+                    'betlosses': player.get_betlosses(), 'coinwins': player.get_coinwins(),
                     'coinlosses': player.get_coinlosses(), 'revives': player.get_revives()}
     with conn:
-        c.execute("SELECT * from players WHERE playerid = :id", {'id': player.get_id()}) 
-        if c.get == []:
+
+        c.execute("SELECT * from players WHERE playerid = :id", dict) 
+        if c.fetchall() == []:
             c.execute("INSERT INTO players VALUES (:id, :money, :betwins, :betlosses, :coinwins, :coinlosses, :revives)",
                     dict)
         else:
             c.execute("""UPDATE players SET money = :money, betwins = :betwins, betlosses = :betlosses,
-                    coinwins = :coinwins, coinlosses = :coinlosses, revives = :revives WHERE id = :id""", dict)
+                    coinwins = :coinwins, coinlosses = :coinlosses, revives = :revives WHERE playerid = :id""", dict)
 
 
 def add_bet_db(bet):
