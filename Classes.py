@@ -1,100 +1,100 @@
 class Player:
     def __init__(self, id):
-        self.money = 1000
-        self.id = id
-        self.betwins = 0
-        self.betlosses = 0
-        self.coinwins = 0
-        self.coinlosses = 0
-        self.revives = 0
+        self.__money = 1000
+        self.__id = id
+        self.__betwins = 0
+        self.__betlosses = 0
+        self.__coinwins = 0
+        self.__coinlosses = 0
+        self.__revives = 0
 
-    def get_id(self):
-        return self.id
+    def get___id(self):
+        return self.__id
 
-    def get_money(self):
-        return self.money
-    def change_money(self, amount):
-        self.money = self.money + amount
+    def get___money(self):
+        return self.__money
+    def change___money(self, __amount):
+        self.__money = self.__money + __amount
 
 
     def add_betloss(self):
-        self.betlosses += 1
+        self.__betlosses += 1
     def add_betwin(self):
-        self.betwins += 1
+        self.__betwins += 1
     def get_betwinrate(self):
-        total = self.betwins + self.betlosses
+        total = self.__betwins + self.__betlosses
         if (total == 0):
             return 0
         else:
-            return self.betwins / total
+            return self.__betwins / total
     def get_betwins(self):
-        return self.betwins
+        return self.__betwins
     def get_betlosses(self):
-        return self.betlosses
+        return self.__betlosses
 
 
     def add_coinwin(self):
-        self.coinwins += 1
+        self.__coinwins += 1
     def add_coinloss(self):
-        self.coinlosses += 1
+        self.__coinlosses += 1
     def get_coinwins(self):
-        return self.coinwins
+        return self.__coinwins
     def get_coinlosses(self):
-        return self.coinlosses
+        return self.__coinlosses
     def get_coinwinrate(self):
-        total = self.coinwins + self.coinlosses
+        total = self.__coinwins + self.__coinlosses
         if (total == 0):
             return 0
         else:
-            return self.coinwins / total
+            return self.__coinwins / total
 
     def revive(self):
-        self.money = 500
-        self.revives += 1
+        self.__money = 500
+        self.__revives += 1
     def get_revives(self):
-        return self.revives
+        return self.__revives
 
 class Bet:
     def __init__(self, playerid, amount, gameid, team, odds):
-        self.amount = amount
-        self.playerid = playerid
-        self.gameid = gameid
-        self.odds = odds
-        self.team = team
+        self.__amount = amount
+        self.__playerid = playerid
+        self.__gameid = gameid
+        self.__odds = odds
+        self.__team = team
 
     def get_playerid(self):
-        return self.playerid
+        return self.__playerid
     def get_gameid(self):
-        return self.gameid
+        return self.__gameid
     def get_odds(self):
-        return self.odds
+        return self.__odds
     def get_amount(self):
-        return self.amount
+        return self.__amount
     def get_team(self):
-        return self.team
+        return self.__team
 
 class Game:
     def __init__(self, id, time, home_team, away_team, home_odds, away_odds):
-        self.id = id
-        self.time = time
-        self.home_team = home_team
-        self.away_team = away_team
-        self.home_odds = home_odds
-        self.away_odds = away_odds
-        self.result = 0
+        self.__id = id
+        self.__time = time
+        self.__home_team = home_team
+        self.__away_team = away_team
+        self.__home_odds = home_odds
+        self.__away_odds = away_odds
+        self.__result = 0
     def get_id(self):
-        return self.id
+        return self.__id
     def get_time(self):
-        return self.time
+        return self.__time
     def get_hometeam(self):
-        return self.home_team
+        return self.__home_team
     def get_awayteam(self):
-        return self.away_team
+        return self.__away_team
     def get_homeodds(self):
-        return self.home_odds
+        return self.__home_odds
     def get_awayodds(self):
-        return self.away_odds
+        return self.__away_odds
     def get_result(self):
-        return self.result
+        return self.__result
     def change_result(self, result): #1 for home team, 2 for away team, 0 for no result yet
-        self.result = result
+        self.__result = result
