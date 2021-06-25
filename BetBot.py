@@ -10,9 +10,13 @@ import sqlite3
 from Classes import Player, Bet, Game
 
 #leaderboard
-#adding money for merits or something idk - admin only command
-#shut down command?
+#adding money for merits or something idk - admin only commands (also remove money)
 #change bets and members from dictionary to databases
+#edit coinflip so uses dastabase instead of dictionary
+
+#bets should just take money out and create bet
+#before new data is taken, check to see if a game has finished -> if it has go thorugh the bets for that specific game using gameid, and distribute money from there.
+
 #Figure out how to tell when game ends
 
 client = discord.Client()
@@ -37,6 +41,14 @@ coinwins INTEGER, coinlosses INTEGER, revives INTEGER)""")
 c.execute("""CREATE TABLE IF NOT EXISTS
 bets(playerid TEXT, amount INTEGER, gameid INTEGER, team TEXT, betodds FLOAT)""")
 
+def get_player_db(id):
+    c.execute("SELECT * from players WHERE playerid = :id", {'id': id}) 
+    data = c.fetchall()
+    if data == []:
+        return
+    else:
+        pass
+
 def update_player_db(player):
     dict = {'id': str(player.get_id()), 'money': player.get_money(), 'betwins': player.get_betwins(),
                     'betlosses': player.get_betlosses(), 'coinwins': player.get_coinwins(),
@@ -51,6 +63,9 @@ def update_player_db(player):
             c.execute("""UPDATE players SET money = :money, betwins = :betwins, betlosses = :betlosses,
                     coinwins = :coinwins, coinlosses = :coinlosses, revives = :revives WHERE playerid = :id""", dict)
 
+
+def get_game_bet_db(gameid):
+    c.execute("SELECT * from bets WHERE gameid = :gameid", {'gameid': gameid})
 
 def add_bet_db(bet):
     with conn:
@@ -106,12 +121,11 @@ async def on_message(message):
                 await channel.send('You are not at $0, you do not need a revive')
 
 
-    if content.startswith('$odds'):                        #prints odds
+    if content.startswith('$odds'):                        #prints odds with teams and time
         for i in range(len(Games)):
-            time = datetime.fromtimestamp(Games[i].get_time()).strftime("%m-%d-%y %H:%M")
             await channel.send(Games[i].get_hometeam() + ' vs ' + Games[i].get_awayteam() + '\n' +
-                                str(time)+ '\n' +
-                                str(Games[i].get_homeodds()) + '            ' + str(Games[i].get_awayodds()) + '\n') 
+                                str(datetime.fromtimestamp(Games[i].get_time()).strftime("%m-%d-%y   %H:%M"))+ '\n' +
+                                str(Games[i].get_homeodds()) + '            ' + str(Games[i].get_awayodds()) + '\n\n') 
             #max 22 characters for team name
 
     elif content.startswith('$bet'):                      #initiates bet ($bet)
