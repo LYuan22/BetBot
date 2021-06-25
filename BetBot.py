@@ -149,6 +149,7 @@ async def on_message(message):
             temp_player.add_coinloss()
         await results(temp_player, result == word_arr[2], val)
         Players[author] = temp_player
+        update_player_db(temp_player)
 
 
     elif content.startswith('$stats'):
