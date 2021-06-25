@@ -1,6 +1,5 @@
 .env
 players.db
 bets.db 
-__pycache__/Bet_Class.cpython-39.pyc
-__pycache__/Player_Class.cpython-39.pyc
 .vscode/settings.json
+__pycache__/Classes.cpython-39.pyc
