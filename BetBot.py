@@ -28,26 +28,26 @@ channelkey = int(os.getenv('channel'))
 
 
 #creating dictionary of players, will wipe when bot is shut down. 
-Players = {}
 Games = []
 Bets = []
 
 
 conn = sqlite3.connect('players.db')
 c = conn.cursor()
-c.execute( """CREATE TABLE IF NOT EXISTS
-players(playerid TEXT, money INTEGER, betwins INTEGER, betlosses INTEGER,
+c.execute("""CREATE TABLE IF NOT EXISTS
+players(playerid TEXT PRIMARY KEY, money INTEGER, betwins INTEGER, betlosses INTEGER,
 coinwins INTEGER, coinlosses INTEGER, revives INTEGER)""")
 c.execute("""CREATE TABLE IF NOT EXISTS
-bets(playerid TEXT, amount INTEGER, gameid INTEGER, team TEXT, betodds FLOAT)""")
+bets(amount INTEGER, gameid INTEGER, team TEXT, betodds FLOAT, FOREIGN KEY(playerid) REFERENCES players(playerid))""")
 
 def get_player_db(id):
     c.execute("SELECT * from players WHERE playerid = :id", {'id': id}) 
     data = c.fetchall()
     if data == []:
-        return
+        return None
     else:
-        pass
+        player = data[0]
+        return Player(player[0], player[1], player[2], player[3], player [4], player [5], player [6])
 
 def update_player_db(player):
     dict = {'id': str(player.get_id()), 'money': player.get_money(), 'betwins': player.get_betwins(),
@@ -66,12 +66,12 @@ def update_player_db(player):
 
 def get_game_bet_db(gameid):
     c.execute("SELECT * from bets WHERE gameid = :gameid", {'gameid': gameid})
+    return c.fetchall()
 
 def add_bet_db(bet):
     with conn:
         c.execute("INSERT INTO bets VALUES(:playerid, :amount, :gameid, :team, :betodds",
         {'playerid': bet.get_playerid(), 'amount': bet.get_amount(), 'gameid': bet.get_gameid(), 'team': bet.get_team(), 'betodds': bet.get_odds()})
-
 
 def remove_bet_db(bet):
     with conn:
@@ -79,7 +79,9 @@ def remove_bet_db(bet):
 
 
 
-
+def new_player(id):
+    return Player(id, 1000, 0, 0, 0, 0, 0)
+    
 #standard start event
 @client.event
 async def on_ready():
@@ -88,6 +90,12 @@ async def on_ready():
     #await channel.send('ALIVE')
     test.start()
 
+async def print_results(name, player, win, amount):
+    channel = client.get_channel(channelkey)
+    if win == True:
+       await channel.send(name + ' has won $' + str(amount) + '. ' + name + ' now has $' + str(player.get_money()))
+    else:
+        await channel.send(name + ' has lost $' + str(amount) + '. ' + name + ' now has $' + str(player.get_money()))
 
 #message event
 @client.event
@@ -98,58 +106,81 @@ async def on_message(message):
 
     content = message.content
     author = message.author
+    authorid = str(author)
     name = author.name
     channel = message.channel
     word_arr = content.split()
 
-    async def results(player, win, amount):
-        if win == True:
-            player.change_money(amount)
-            await channel.send(name + ' has won $' + str(amount) + '. ' + name + ' now has $' + str(player.get_money()))
-        else:
-            player.change_money( -1 * amount)
-            await channel.send(name + ' has lost $' + str(amount) + '. ' + name + ' now has $' + str(player.get_money()))
+
 
     if content.startswith('$revive'):
-        temp_player = Players.get(author)
-        if Players.get(author) != None:
+        temp_player = get_player_db(authorid)
+        if temp_player != None:
             if temp_player.get_money() == 0:
                 temp_player.revive()
                 await channel.send('You have been revived with $500')
-                Players[author] = temp_player
+                update_player_db(temp_player)
             else:
                 await channel.send('You are not at $0, you do not need a revive')
+
+
 
 
     if content.startswith('$odds'):                        #prints odds with teams and time
         for i in range(len(Games)):
             await channel.send(Games[i].get_hometeam() + ' vs ' + Games[i].get_awayteam() + '\n' +
-                                str(datetime.fromtimestamp(Games[i].get_time()).strftime("%m-%d-%y   %H:%M"))+ '\n' +
+                                'Gameid: ' + Games[i].get_gameid() + '\n' +
+                                #str(datetime.fromtimestamp(Games[i].get_time()).strftime("%m-%d-%y   %H:%M"))+ '\n' +
                                 str(Games[i].get_homeodds()) + '            ' + str(Games[i].get_awayodds()) + '\n\n') 
             #max 22 characters for team name
 
-    elif content.startswith('$bet'):                      #initiates bet ($bet)
-        if Players.get(author) == None:
-            Players[author] = Player(author)
-            await channel.send('sucks')
+
+
+
+
+
+    elif content.startswith('$bet'):                      #initiates bet ($bet amount gameid team)
+        if (len(word_arr != 4)) or word_arr[1].isnumeric() == False or isinstance(word_arr[2], str) == False or isinstance(word_arr[3], str) == False:
+            await channel.send('formate: $bet amount gameid team')
+            return
+        elif int(word_arr [1] <= 0):
+            await channel.send('amount cannot be 0 or negative')
+            return
+
+        amount = int(word_arr[1])
+        temp_player = get_player_db(authorid)
+        if temp_player != None:
+            temp_player = new_player(authorid)
+        if amount > temp_player.get_money():      #checks you can bet the amount
+            await channel.send('You cannot bet more than you have')
+            return
+        temp_player.change_money(-1 * amount)
+        bet = Bet(authorid, amount, word_arr[2], word_arr[3], odds)
+
+
+        update_player_db(temp_player)
+
+
+
 
 
 
     elif content.startswith('$coinflip'):                 #coinflip ($coinflip [amount] [h/t])
-        if ((len(word_arr)) != 3) or (word_arr[1].isnumeric() == False or (word_arr[2] == 'heads' or word_arr[2] == 'tails') == False):                               #format checker
+        if ((len(word_arr)) != 3) or word_arr[1].isnumeric() == False or (word_arr[2] == 'heads' or word_arr[2] == 'tails') == False:                               #format checker
             await channel.send('format: $coinflip amount heads/tails')
             return
         elif int(word_arr[1]) <= 0:
             await channel.send('amount cannot be 0 or negative')
             return
-        val = int(word_arr[1])
-        if Players.get(author) == None:                     #creates player if doesnt exist yet
-            Players[author] = Player(author)
-        temp_player = Players.get(author)
-        if val > temp_player.get_money():
+        
+        amount = int(word_arr[1])
+        temp_player = get_player_db(authorid)
+        if temp_player == None:                     #creates player if doesnt exist yet
+            temp_player = new_player(authorid)
+
+        if amount > temp_player.get_money():      #checks you can bet the amount
             await channel.send('You cannot bet more than you have')
             return
-
 
         toss = random.randint(0,1)
         if toss == 0:
@@ -160,17 +191,20 @@ async def on_message(message):
         await channel.send(name + ' has flipped ' + result)
         if result == word_arr[2]:
             temp_player.add_coinwin()
+            temp_player.change_money(amount)
         else:
             temp_player.add_coinloss()
-        await results(temp_player, result == word_arr[2], val)
-        Players[author] = temp_player
+            temp_player.change_money( -1 * amount)
+        await print_results(name, temp_player, result == word_arr[2], amount)
         update_player_db(temp_player)
 
 
+
+
     elif content.startswith('$stats'):
-        if Players.get(author) == None:                     #creates player if doesnt exist yet
-            Players[author] = Player(author)
-        temp_player = Players.get(author)
+        temp_player = get_player_db(authorid)
+        if temp_player == None:                     #creates player if doesnt exist yet
+            temp_player = new_player(author)
         await channel.send(str(author) + ': \n' + 'Money: $' + str(temp_player.get_money()) + '\nBets Won: ' + str(temp_player.get_betwins()) + '\nBets Lost: ' + str(temp_player.get_betlosses()) + '\nBet Winrate: ' + str(temp_player.get_betwinrate())
                                     + '\nCoin Tosses Won: ' + str(temp_player.get_coinwins()) + '\nCoin Tosses Lost: ' + str(temp_player.get_coinlosses()) + '\nCoin Toss Winrate: ' + str(round((temp_player.get_coinwinrate() * 100), 2)) + '%'
                                     + '\nRevives: ' + str(temp_player.get_revives()))
