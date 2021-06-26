@@ -1,19 +1,19 @@
 class Player:
-    def __init__(self, id):
-        self.__money = 1000
+    def __init__(self, id, money, betwins, betlosses, coinwins, coinlosses, revives):
         self.__id = id
-        self.__betwins = 0
-        self.__betlosses = 0
-        self.__coinwins = 0
-        self.__coinlosses = 0
-        self.__revives = 0
+        self.__money = money
+        self.__betwins = betwins
+        self.__betlosses = betlosses
+        self.__coinwins = coinwins
+        self.__coinlosses = coinlosses
+        self.__revives = revives
 
-    def get___id(self):
+    def get_id(self):
         return self.__id
 
-    def get___money(self):
+    def get_money(self):
         return self.__money
-    def change___money(self, __amount):
+    def change_money(self, __amount):
         self.__money = self.__money + __amount
 
 
@@ -74,16 +74,17 @@ class Bet:
         return self.__team
 
 class Game:
-    def __init__(self, id, time, home_team, away_team, home_odds, away_odds):
-        self.__id = id
+    def __init__(self, gameid, time, home_team, away_team, home_odds, away_odds):
+        self.__gameid = gameid
         self.__time = time
         self.__home_team = home_team
         self.__away_team = away_team
         self.__home_odds = home_odds
         self.__away_odds = away_odds
         self.__result = 0
-    def get_id(self):
-        return self.__id
+
+    def get_gameid(self):
+        return self.__gameid
     def get_time(self):
         return self.__time
     def get_hometeam(self):
@@ -94,6 +95,7 @@ class Game:
         return self.__home_odds
     def get_awayodds(self):
         return self.__away_odds
+
     def get_result(self):
         return self.__result
     def change_result(self, result): #1 for home team, 2 for away team, 0 for no result yet
