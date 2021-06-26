@@ -28,7 +28,7 @@ channelkey = int(os.getenv('channel'))
 
 
 #creating dictionary of players, will wipe when bot is shut down. 
-Games = []
+Games = {}
 Bets = []
 
 
@@ -154,11 +154,28 @@ async def on_message(message):
         if amount > temp_player.get_money():      #checks you can bet the amount
             await channel.send('You cannot bet more than you have')
             return
+        gameid = word_arr[2]
+        game = Games.get(gameid)
+        team = word_arr[3]
+
+        hometeam = game.get_hometeam().split()
+        hometeam = hometeam[len(hometeam) - 1]
+        awayteam = game.get_away_team().split()
+        awayteam = awayteam[len(awayteam) - 1]
+
+        if game == None:
+            await channel.send('Invalid Gameid')
+            return
+        elif team == hometeam:
+            bet = Bet(authorid, amount, gameid, team, game.get_homeodds()) #2 is gameid, #3 is team
+        elif team == awayteam:
+            bet = Bet(authorid, amount, gameid, team, game.get_awayodds()) #2 is gameid, #3 is team
+        else:
+            await channel.send('Not a team in that game')
+            return
         temp_player.change_money(-1 * amount)
-        bet = Bet(authorid, amount, word_arr[2], word_arr[3], odds)
-
-
         update_player_db(temp_player)
+        add_bet_db(bet)
 
 
 
@@ -281,9 +298,7 @@ async def test():
 
         #away_team_name = gamedata.get('teams')[0].split()
         #away_team_name = away_team_name[len(away_team_name) - 1] #getting last word for all team (eg Atlanta Hawks -> Hawks, Los Angeles Lakers -> Lakers)
-
-        game = Game(gamedata.get('id'), int(gamedata.get('commence_time')), gamedata.get('teams')[1], gamedata.get('teams')[0], home_odds, away_odds)
-        Games.append(game)
+        Games[gamedata.get('id')] = Game(gamedata.get('id'), int(gamedata.get('commence_time')), gamedata.get('teams')[1], gamedata.get('teams')[0], home_odds, away_odds)
 
 
 client.run(TOKEN)
