@@ -4,17 +4,15 @@ import requests
 import json
 import random
 from dotenv import load_dotenv
-from discord.ext import commands, tasks
-from datetime import datetime #use this to tell how game ends with different API
+from discord.ext import tasks
+import datetime #use this to tell how game ends with different API
 import sqlite3
 from Classes import Player, Bet, Game
+from API_data import get_games, get_odds
 
 #leaderboard
 #adding money for merits or something idk - admin only commands (also remove money)
-#change bets and members from dictionary to databases
-#edit coinflip so uses dastabase instead of dictionary
 
-#bets should just take money out and create bet
 #before new data is taken, check to see if a game has finished -> if it has go thorugh the bets for that specific game using gameid, and distribute money from there.
 
 #Figure out how to tell when game ends
@@ -89,7 +87,7 @@ async def on_ready():
     print('We have logged in as {0.user}'.format(client))
     channel = client.get_channel(channelkey)
     #await channel.send('ALIVE')
-    test.start()
+    update.start()
 
 async def print_results(name, player, win, amount):
     channel = client.get_channel(channelkey)
@@ -101,6 +99,8 @@ async def print_results(name, player, win, amount):
 async def check(msg):
     return msg.author == c.author and msg.channel == c.channel and \
     msg.content.lower() in ['y', 'n']
+
+
 
 #message event
 @client.event
@@ -115,12 +115,19 @@ async def on_message(message):
     name = author.name
     channel = message.channel
     word_arr = content.split()
+    print(author.guild_permissions.administrator)
 
+    if content.startswith('$addmoney'): # $addmoney amount person
+        if author.guild_permissions.administrator == True:
+            if len(word_arr != 3 or word_arr[1].isnumeric() == False or isinstance(word_arr[2], str) == False:
+                await channel.send('format: $addmoney amount member')
+                return
+            
+        else:
+            await channel.send('You do not have permissions for that command')
+        pass
 
-    def check(msg):
-        return msg.author == author and msg.channel == channel and msg.content.lower() in ['y', 'n']
-
-    if content.startswith('$revive'):
+    elif content.startswith('$revive'):
         temp_player = get_player_db(authorid)
         if temp_player != None:
             if temp_player.get_money() == 0:
@@ -131,9 +138,7 @@ async def on_message(message):
                 await channel.send('You are not at $0, you do not need a revive')
 
 
-
-
-    if content.startswith('$odds'):                        #prints odds with teams and time
+    elif content.startswith('$odds'):                        #prints odds with teams and time
         g = list(Games.values())
         print(g)
         for i in range(len(g)):
@@ -149,6 +154,7 @@ async def on_message(message):
 
 
     elif content.startswith('$bet'):                      #initiates bet ($bet amount gameid team)
+        
         if len(word_arr) != 4 or word_arr[1].isnumeric() == False or isinstance(word_arr[2], str) == False or isinstance(word_arr[3], str) == False:
             await channel.send('format: $bet amount gameid team')
             return
@@ -169,10 +175,14 @@ async def on_message(message):
         temp_player = get_player_db(authorid)
         if temp_player != None:
             temp_player = new_player(authorid)
-        if amount > temp_player.get_money():      #checks you can bet the amount
+        elif amount > temp_player.get_money():      #checks you can bet the amount
             await channel.send('You cannot bet more than you have')
             return
         
+
+        def check(msg):
+            return msg.author == author and msg.channel == channel and msg.content.lower() in ['y', 'n']
+
         if game == None:
             await channel.send('Invalid Gameid')
             return
@@ -251,17 +261,28 @@ async def on_message(message):
                                     + '\nRevives: ' + str(temp_player.get_revives()))
 
 
-def get_odds():
-    key = 'basketball_nba'
-    response = requests.get('http://api.the-odds-api.com/v3/odds', params = {'api_key': apikey, 'sport': key, 'region': 'us', 'mkt': 'h2h'})
-    json_data = json.loads(response.text)
-    return json_data
-
 @tasks.loop(hours = 2)                                  #only 500 updates a month (not trying to pay to get more)
-async def test():
-    #apidata = get_odds()
+async def update():
+    #apidata = get_odds(apikey)
     #channel = client.get_channel(channelkey)
     #await channel.send('Updating Odds')
+    gamedata = {"status":200,
+    "time":"2021-06-28T21:17:52.426Z",
+    "games":1,"skip":0,
+    "results":[
+        {"schedule":{"date":"2021-06-23T01:00:00.000Z","tbaTime":False},
+        "summary":"Los Angeles Clippers @ Phoenix Suns",
+        "details":{"league":"NBA","seasonType":"postseason","season":2020,"conferenceGame":True,"divisionGame":True},
+        "status":"final",
+        "teams":{"away":{"team":"Los Angeles Clippers","location":"Los Angeles","mascot":"Clippers","abbreviation":"LAC","conference":"Western","division":"Pacific"},"home":{"team":"Phoenix Suns","location":"Phoenix","mascot":"Suns","abbreviation":"PHX","conference":"Western","division":"Pacific"}},
+        "lastUpdated":"2021-06-23T04:04:50.076Z",
+        "gameId":264995,
+        "venue":{"name":"Phoenix Suns Arena","city":"Phoenix","state":"AZ","neutralSite":False},
+        "odds":[{"spread":{"open":{"away":6,"home":-6,"awayOdds":-115,"homeOdds":-105},"current":{"away":4.5,"home":-4.5,"awayOdds":-110,"homeOdds":-115}},"moneyline":{"open":{"awayOdds":199,"homeOdds":-239},"current":{"awayOdds":165,"homeOdds":-188}},"total":{"open":{"total":224,"overOdds":-110,"underOdds":-110},"current":{"total":223,"overOdds":-110,"underOdds":-110}},"openDate":"2021-06-21T13:14:00.367Z","lastUpdated":"2021-06-23T01:16:58.737Z"}],
+        "scoreboard":{"score":{"away":103,"home":104,"awayPeriods":[22,25,24,32],"homePeriods":[25,23,27,29]},"currentPeriod":4,"periodTimeRemaining":"0:00"}}]}
+    gamedata.get('results')[0].get('scoreboard').get('score').get('home')
+
+
 
     apidata = {'success': True, 'data': [{'id': '615244c04bcf4e42124695a65588b2dd', 'sport_key': 'basketball_nba', 'sport_nice': 'NBA', 'teams': ['Los Angeles Clippers', 'Phoenix Suns'], 'commence_time': 1624410600, 'home_team': 'Phoenix Suns',
     'sites': [{'site_key': 'bookmaker', 'site_nice': 'Bookmaker', 'last_update': 1624392595, 'odds': {'h2h': [2.55, 1.56]}},
