@@ -31,17 +31,17 @@ channelkey = int(os.getenv('channel'))
 Games = {}
 Bets = []
 
-
 conn = sqlite3.connect('players.db')
 c = conn.cursor()
-c.execute("""CREATE TABLE IF NOT EXISTS
+c.execute('''CREATE TABLE IF NOT EXISTS
 players(playerid TEXT PRIMARY KEY, money INTEGER, betwins INTEGER, betlosses INTEGER,
-coinwins INTEGER, coinlosses INTEGER, revives INTEGER)""")
-c.execute("""CREATE TABLE IF NOT EXISTS
-bets(amount INTEGER, gameid INTEGER, team TEXT, betodds FLOAT, FOREIGN KEY(playerid) REFERENCES players(playerid))""")
+coinwins INTEGER, coinlosses INTEGER, revives INTEGER)''')
+
+c.execute('''CREATE TABLE IF NOT EXISTS
+bets(amount INTEGER, gameid TEXT, team TEXT, betodds FLOAT, playerid TEXT)''')
 
 def get_player_db(id):
-    c.execute("SELECT * from players WHERE playerid = :id", {'id': id}) 
+    c.execute('SELECT * from players WHERE playerid = :id', {'id': id}) 
     data = c.fetchall()
     if data == []:
         return None
@@ -55,27 +55,28 @@ def update_player_db(player):
                     'coinlosses': player.get_coinlosses(), 'revives': player.get_revives()}
     with conn:
 
-        c.execute("SELECT * from players WHERE playerid = :id", dict) 
+        c.execute('SELECT * from players WHERE playerid = :id', dict) 
         if c.fetchall() == []:
-            c.execute("INSERT INTO players VALUES (:id, :money, :betwins, :betlosses, :coinwins, :coinlosses, :revives)",
+            c.execute('INSERT INTO players VALUES (:id, :money, :betwins, :betlosses, :coinwins, :coinlosses, :revives)',
                     dict)
         else:
-            c.execute("""UPDATE players SET money = :money, betwins = :betwins, betlosses = :betlosses,
-                    coinwins = :coinwins, coinlosses = :coinlosses, revives = :revives WHERE playerid = :id""", dict)
+            c.execute('''UPDATE players SET money = :money, betwins = :betwins, betlosses = :betlosses,
+                    coinwins = :coinwins, coinlosses = :coinlosses, revives = :revives WHERE playerid = :id''', dict)
 
 
 def get_game_bet_db(gameid):
-    c.execute("SELECT * from bets WHERE gameid = :gameid", {'gameid': gameid})
+    c.execute('SELECT * from bets WHERE gameid = :gameid', {'gameid': gameid})
     return c.fetchall()
 
 def add_bet_db(bet):
     with conn:
-        c.execute("INSERT INTO bets VALUES(:playerid, :amount, :gameid, :team, :betodds",
-        {'playerid': bet.get_playerid(), 'amount': bet.get_amount(), 'gameid': bet.get_gameid(), 'team': bet.get_team(), 'betodds': bet.get_odds()})
+        c.execute('INSERT INTO bets VALUES(:amount, :gameid, :team, :betodds, :playerid)',
+        {'playerid': bet.get_playerid(), 'amount': bet.get_amount(), 'gameid': bet.get_gameid(), 'team': bet.get_team(), 'betodds': bet.get_odds()}
+        )
 
 def remove_bet_db(bet):
     with conn:
-        c.execute("DELETE from players WHERE playerid = :playerid AND gameid = :gameid", {'playerid': bet.get_playerid(), 'gameid' : bet.get_gameid()})
+        c.execute('DELETE from players WHERE playerid = :playerid AND gameid = :gameid', {'playerid': bet.get_playerid(), 'gameid' : bet.get_gameid()})
 
 
 
@@ -97,6 +98,10 @@ async def print_results(name, player, win, amount):
     else:
         await channel.send(name + ' has lost $' + str(amount) + '. ' + name + ' now has $' + str(player.get_money()))
 
+async def check(msg):
+    return msg.author == c.author and msg.channel == c.channel and \
+    msg.content.lower() in ['y', 'n']
+
 #message event
 @client.event
 async def on_message(message):
@@ -112,6 +117,8 @@ async def on_message(message):
     word_arr = content.split()
 
 
+    def check(msg):
+        return msg.author == author and msg.channel == channel and msg.content.lower() in ['y', 'n']
 
     if content.startswith('$revive'):
         temp_player = get_player_db(authorid)
@@ -127,11 +134,13 @@ async def on_message(message):
 
 
     if content.startswith('$odds'):                        #prints odds with teams and time
-        for i in range(len(Games)):
-            await channel.send(Games[i].get_hometeam() + ' vs ' + Games[i].get_awayteam() + '\n' +
-                                'Gameid: ' + Games[i].get_gameid() + '\n' +
-                                #str(datetime.fromtimestamp(Games[i].get_time()).strftime("%m-%d-%y   %H:%M"))+ '\n' +
-                                str(Games[i].get_homeodds()) + '            ' + str(Games[i].get_awayodds()) + '\n\n') 
+        g = list(Games.values())
+        print(g)
+        for i in range(len(g)):
+            await channel.send(g[i].get_hometeam() + ' vs ' + g[i].get_awayteam() + '\n' +
+                                'Gameid: ' + g[i].get_gameid() + '\n' + 
+                                #str(datetime.fromtimestamp(Games[i].get_time()).strftime('%m-%d-%y   %H:%M'))+ '\n' +
+                                str(g[i].get_homeodds()) + '            ' + str(g[i].get_awayodds()) + '\n\n') 
             #max 22 characters for team name
 
 
@@ -140,12 +149,21 @@ async def on_message(message):
 
 
     elif content.startswith('$bet'):                      #initiates bet ($bet amount gameid team)
-        if (len(word_arr != 4)) or word_arr[1].isnumeric() == False or isinstance(word_arr[2], str) == False or isinstance(word_arr[3], str) == False:
-            await channel.send('formate: $bet amount gameid team')
+        if len(word_arr) != 4 or word_arr[1].isnumeric() == False or isinstance(word_arr[2], str) == False or isinstance(word_arr[3], str) == False:
+            await channel.send('format: $bet amount gameid team')
             return
-        elif int(word_arr [1] <= 0):
+        elif int(word_arr [1]) <= 0:
             await channel.send('amount cannot be 0 or negative')
             return
+
+        gameid = word_arr[2]
+        game = Games.get(gameid)
+        team = word_arr[3]
+
+        hometeam = game.get_hometeam().split()
+        hometeam = hometeam[len(hometeam) - 1]
+        awayteam = game.get_awayteam().split()
+        awayteam = awayteam[len(awayteam) - 1]
 
         amount = int(word_arr[1])
         temp_player = get_player_db(authorid)
@@ -154,28 +172,34 @@ async def on_message(message):
         if amount > temp_player.get_money():      #checks you can bet the amount
             await channel.send('You cannot bet more than you have')
             return
-        gameid = word_arr[2]
-        game = Games.get(gameid)
-        team = word_arr[3]
-
-        hometeam = game.get_hometeam().split()
-        hometeam = hometeam[len(hometeam) - 1]
-        awayteam = game.get_away_team().split()
-        awayteam = awayteam[len(awayteam) - 1]
-
+        
         if game == None:
             await channel.send('Invalid Gameid')
             return
         elif team == hometeam:
-            bet = Bet(authorid, amount, gameid, team, game.get_homeodds()) #2 is gameid, #3 is team
+            await channel.send('Are you sure you want to place a bet on ' + team + ' for ' + str(amount) + '? [y/n]')
+            msg = await client.wait_for('message', check = check)
+            if msg.content.lower() == 'y':
+                bet = Bet(authorid, amount, gameid, team, game.get_homeodds())
+            else:
+                await channel.send('Bet has not been confirmed')
+                return
         elif team == awayteam:
-            bet = Bet(authorid, amount, gameid, team, game.get_awayodds()) #2 is gameid, #3 is team
+            await channel.send('Are you sure you want to place a bet on ' + team + ' for ' + str(amount) + '? [y/n]')
+            msg = await client.wait_for('message', check = check)
+            if msg.content.lower() == 'y':
+                bet = Bet(authorid, amount, gameid, team, game.get_homeodds())
+            else:
+                await channel.send('Bet has not been confirmed')
+                return
         else:
             await channel.send('Not a team in that game')
             return
+
         temp_player.change_money(-1 * amount)
         update_player_db(temp_player)
         add_bet_db(bet)
+        await channel.send('Your bet on  ' + team + ' for ' + str(amount) + ' has been confimed.')
 
 
 
@@ -292,13 +316,6 @@ async def test():
             away_odds = away_odds + h2hodds[0]
         home_odds = round(home_odds / len(sitedata), 2)
         away_odds = round(away_odds / len(sitedata), 2)
-
-        #home_team_name = gamedata.get('teams')[1].split()
-        #home_team_name = home_team_name[len(home_team_name) - 1]
-
-        #away_team_name = gamedata.get('teams')[0].split()
-        #away_team_name = away_team_name[len(away_team_name) - 1] #getting last word for all team (eg Atlanta Hawks -> Hawks, Los Angeles Lakers -> Lakers)
         Games[gamedata.get('id')] = Game(gamedata.get('id'), int(gamedata.get('commence_time')), gamedata.get('teams')[1], gamedata.get('teams')[0], home_odds, away_odds)
-
 
 client.run(TOKEN)
