@@ -117,15 +117,24 @@ async def on_message(message):
     word_arr = content.split()
     print(author.guild_permissions.administrator)
 
-    if content.startswith('$addmoney'): # $addmoney amount person
+    if content.startswith('$editmoney'): # ADMIN ONLY COMMAND $editmoney amount person
         if author.guild_permissions.administrator == True:
-            if len(word_arr != 3 or word_arr[1].isnumeric() == False or isinstance(word_arr[2], str) == False:
-                await channel.send('format: $addmoney amount member')
+            if len(word_arr) != 3 or word_arr[1].isnumeric() == False or isinstance(word_arr[2], str) == False:
+                await channel.send('format: $editmoney amount member')
                 return
-            
+            else:
+                amount = word_arr[1] 
+                member = word_arr[2]
+                temp_player = get_player_db(member)
+                if temp_player == None:
+                    await channel.send('member does not exist')
+                    return
+                else:
+                    temp_player.change_money(amount)
+                update_player_db(temp_player)
         else:
             await channel.send('You do not have permissions for that command')
-        pass
+        
 
     elif content.startswith('$revive'):
         temp_player = get_player_db(authorid)
@@ -173,9 +182,9 @@ async def on_message(message):
 
         amount = int(word_arr[1])
         temp_player = get_player_db(authorid)
-        if temp_player != None:
+        if temp_player == None:
             temp_player = new_player(authorid)
-        elif amount > temp_player.get_money():      #checks you can bet the amount
+        if amount > temp_player.get_money():      #checks you can bet the amount
             await channel.send('You cannot bet more than you have')
             return
         
