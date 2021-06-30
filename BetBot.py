@@ -149,7 +149,6 @@ async def on_message(message):
 
     elif content.startswith('$odds'):                        #prints odds with teams and time
         g = list(Games.values())
-        print(g)
         for i in range(len(g)):
             await channel.send(g[i].get_hometeam() + ' vs ' + g[i].get_awayteam() + '\n' +
                                 'Gameid: ' + g[i].get_gameid() + '\n' + 
@@ -290,8 +289,38 @@ async def update():
         "odds":[{"spread":{"open":{"away":6,"home":-6,"awayOdds":-115,"homeOdds":-105},"current":{"away":4.5,"home":-4.5,"awayOdds":-110,"homeOdds":-115}},"moneyline":{"open":{"awayOdds":199,"homeOdds":-239},"current":{"awayOdds":165,"homeOdds":-188}},"total":{"open":{"total":224,"overOdds":-110,"underOdds":-110},"current":{"total":223,"overOdds":-110,"underOdds":-110}},"openDate":"2021-06-21T13:14:00.367Z","lastUpdated":"2021-06-23T01:16:58.737Z"}],
         "scoreboard":{"score":{"away":103,"home":104,"awayPeriods":[22,25,24,32],"homePeriods":[25,23,27,29]},"currentPeriod":4,"periodTimeRemaining":"0:00"}}]}
     gamedata.get('results')[0].get('scoreboard').get('score').get('home')
+    g = list(Games.values())
+    bets = []
+    game_results = gamedata.get('results')
+    for i in range(len(game_results)):                                  #changes results of all finished games
+        for j in range(len(g)):
+            time = game_results[i].get('schedule').get('date')[0:9]
+            if time == str(datetime.fromtimestamp(Games[i].get_time()).strftime('%Y-%m-%d')):
+                teams = game_results[i].get('teams')
+                if teams.get('away').get('team') == g[j].get_awayteam():
+                    if teams.get('home').get('team') == g[j].get_hometeam():
+                        score = game_results[i].get('scoreboard').get('score')
+                        if score.get('away') < score.get('home'):
+                            g[j].change_results(1)
+                            Games[g[j].get_gameid] = g[j]
+                        else:
+                            g[j].change_results(2)
+
+    for i in range(len(g)):                                             #gets bets for all finished games
+        game = g[i]
+        if game.get_results != 0:
+            bets = bets + get_game_bet_db(game.get_gameid())
 
 
+    for i in range(len(bets)):                                          #allots money based on finished games
+        bet = bets[i]
+        gameid = bet.get_id()
+        if Games[gameid] == 1 and bet.get_team == Games[gameid].get_hometeam:
+            temp_player = get_player_db(bet.get_playerid())
+            temp_player.change_money(bet.get_amount() * (1 + bet.get_odds))
+        elif Games[gameid] == 2 and bet.get_team == Games[gameid].get_awayteam:
+            temp_player = get_player_db(bet.get_playerid())
+            temp_player.change_money(bet.get_amount() * (1 + bet.get_odds))
 
     apidata = {'success': True, 'data': [{'id': '615244c04bcf4e42124695a65588b2dd', 'sport_key': 'basketball_nba', 'sport_nice': 'NBA', 'teams': ['Los Angeles Clippers', 'Phoenix Suns'], 'commence_time': 1624410600, 'home_team': 'Phoenix Suns',
     'sites': [{'site_key': 'bookmaker', 'site_nice': 'Bookmaker', 'last_update': 1624392595, 'odds': {'h2h': [2.55, 1.56]}},
