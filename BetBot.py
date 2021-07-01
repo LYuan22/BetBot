@@ -5,7 +5,7 @@ import json
 import random
 from dotenv import load_dotenv
 from discord.ext import tasks
-import datetime #use this to tell how game ends with different API
+import datetime
 import sqlite3
 from Classes import Player, Bet, Game
 from API_data import get_games, get_odds
@@ -41,7 +41,7 @@ bets(amount INTEGER, gameid TEXT, team TEXT, betodds FLOAT, playerid TEXT)''')
 def get_player_db(id):
     c.execute('SELECT * from players WHERE playerid = :id', {'id': id}) 
     data = c.fetchall()
-    if data == []:
+    if data == ():
         return None
     else:
         player = data[0]
@@ -62,9 +62,17 @@ def update_player_db(player):
                     coinwins = :coinwins, coinlosses = :coinlosses, revives = :revives WHERE playerid = :id''', dict)
 
 
-def get_game_bet_db(gameid):
+def get_game_bets_db(gameid):
     c.execute('SELECT * from bets WHERE gameid = :gameid', {'gameid': gameid})
-    return c.fetchall()
+    data = c.fetchall()
+    list = []
+    if data == ():
+        return None
+    else:
+        for i in range(len(data)):
+            inc = data[i]
+            list.append(Bet(inc[4], inc[0], inc[1], inc[2], inc[3]))
+        return list
 
 def add_bet_db(bet):
     with conn:
@@ -74,7 +82,7 @@ def add_bet_db(bet):
 
 def remove_bet_db(bet):
     with conn:
-        c.execute('DELETE from players WHERE playerid = :playerid AND gameid = :gameid', {'playerid': bet.get_playerid(), 'gameid' : bet.get_gameid()})
+        c.execute('DELETE from bets WHERE playerid = :playerid AND gameid = :gameid AND amount = :amount AND team = :team', {'playerid': bet.get_playerid(), 'amount': bet.get_amount(), 'gameid': bet.get_gameid(), 'team': bet.get_team()})
 
 
 
@@ -115,7 +123,6 @@ async def on_message(message):
     name = author.name
     channel = message.channel
     word_arr = content.split()
-    print(author.guild_permissions.administrator)
 
     if content.startswith('$editmoney'): # ADMIN ONLY COMMAND $editmoney amount person
         if author.guild_permissions.administrator == True:
@@ -123,7 +130,7 @@ async def on_message(message):
                 await channel.send('format: $editmoney amount member')
                 return
             else:
-                amount = word_arr[1] 
+                amount = int(word_arr[1])
                 member = word_arr[2]
                 temp_player = get_player_db(member)
                 if temp_player == None:
@@ -131,7 +138,7 @@ async def on_message(message):
                     return
                 else:
                     temp_player.change_money(amount)
-                update_player_db(temp_player)
+                    update_player_db(temp_player)
         else:
             await channel.send('You do not have permissions for that command')
         
@@ -152,7 +159,7 @@ async def on_message(message):
         for i in range(len(g)):
             await channel.send(g[i].get_hometeam() + ' vs ' + g[i].get_awayteam() + '\n' +
                                 'Gameid: ' + g[i].get_gameid() + '\n' + 
-                                #str(datetime.fromtimestamp(Games[i].get_time()).strftime('%m-%d-%y   %H:%M'))+ '\n' +
+                                str(datetime.datetime.fromtimestamp(g[i].get_time()).strftime('%m-%d-%y   %H:%M'))+ '\n' +
                                 str(g[i].get_homeodds()) + '            ' + str(g[i].get_awayodds()) + '\n\n') 
             #max 22 characters for team name
 
@@ -174,10 +181,6 @@ async def on_message(message):
         game = Games.get(gameid)
         team = word_arr[3]
 
-        hometeam = game.get_hometeam().split()
-        hometeam = hometeam[len(hometeam) - 1]
-        awayteam = game.get_awayteam().split()
-        awayteam = awayteam[len(awayteam) - 1]
 
         amount = int(word_arr[1])
         temp_player = get_player_db(authorid)
@@ -191,6 +194,12 @@ async def on_message(message):
         def check(msg):
             return msg.author == author and msg.channel == channel and msg.content.lower() in ['y', 'n']
 
+
+        hometeam = game.get_hometeam().split()
+        hometeam = hometeam[len(hometeam) - 1]
+        awayteam = game.get_awayteam().split()
+        awayteam = awayteam[len(awayteam) - 1]
+
         if game == None:
             await channel.send('Invalid Gameid')
             return
@@ -198,7 +207,7 @@ async def on_message(message):
             await channel.send('Are you sure you want to place a bet on ' + team + ' for ' + str(amount) + '? [y/n]')
             msg = await client.wait_for('message', check = check)
             if msg.content.lower() == 'y':
-                bet = Bet(authorid, amount, gameid, team, game.get_homeodds())
+                bet = Bet(authorid, amount, gameid, game.get_hometeam(), game.get_homeodds())
             else:
                 await channel.send('Bet has not been confirmed')
                 return
@@ -206,7 +215,7 @@ async def on_message(message):
             await channel.send('Are you sure you want to place a bet on ' + team + ' for ' + str(amount) + '? [y/n]')
             msg = await client.wait_for('message', check = check)
             if msg.content.lower() == 'y':
-                bet = Bet(authorid, amount, gameid, team, game.get_homeodds())
+                bet = Bet(authorid, amount, gameid, game.get_awayteam(), game.get_homeodds())
             else:
                 await channel.send('Bet has not been confirmed')
                 return
@@ -272,55 +281,8 @@ async def on_message(message):
 @tasks.loop(hours = 2)                                  #only 500 updates a month (not trying to pay to get more)
 async def update():
     #apidata = get_odds(apikey)
-    #channel = client.get_channel(channelkey)
-    #await channel.send('Updating Odds')
-    gamedata = {"status":200,
-    "time":"2021-06-28T21:17:52.426Z",
-    "games":1,"skip":0,
-    "results":[
-        {"schedule":{"date":"2021-06-23T01:00:00.000Z","tbaTime":False},
-        "summary":"Los Angeles Clippers @ Phoenix Suns",
-        "details":{"league":"NBA","seasonType":"postseason","season":2020,"conferenceGame":True,"divisionGame":True},
-        "status":"final",
-        "teams":{"away":{"team":"Los Angeles Clippers","location":"Los Angeles","mascot":"Clippers","abbreviation":"LAC","conference":"Western","division":"Pacific"},"home":{"team":"Phoenix Suns","location":"Phoenix","mascot":"Suns","abbreviation":"PHX","conference":"Western","division":"Pacific"}},
-        "lastUpdated":"2021-06-23T04:04:50.076Z",
-        "gameId":264995,
-        "venue":{"name":"Phoenix Suns Arena","city":"Phoenix","state":"AZ","neutralSite":False},
-        "odds":[{"spread":{"open":{"away":6,"home":-6,"awayOdds":-115,"homeOdds":-105},"current":{"away":4.5,"home":-4.5,"awayOdds":-110,"homeOdds":-115}},"moneyline":{"open":{"awayOdds":199,"homeOdds":-239},"current":{"awayOdds":165,"homeOdds":-188}},"total":{"open":{"total":224,"overOdds":-110,"underOdds":-110},"current":{"total":223,"overOdds":-110,"underOdds":-110}},"openDate":"2021-06-21T13:14:00.367Z","lastUpdated":"2021-06-23T01:16:58.737Z"}],
-        "scoreboard":{"score":{"away":103,"home":104,"awayPeriods":[22,25,24,32],"homePeriods":[25,23,27,29]},"currentPeriod":4,"periodTimeRemaining":"0:00"}}]}
-    gamedata.get('results')[0].get('scoreboard').get('score').get('home')
-    g = list(Games.values())
-    bets = []
-    game_results = gamedata.get('results')
-    for i in range(len(game_results)):                                  #changes results of all finished games
-        for j in range(len(g)):
-            time = game_results[i].get('schedule').get('date')[0:9]
-            if time == str(datetime.fromtimestamp(Games[i].get_time()).strftime('%Y-%m-%d')):
-                teams = game_results[i].get('teams')
-                if teams.get('away').get('team') == g[j].get_awayteam():
-                    if teams.get('home').get('team') == g[j].get_hometeam():
-                        score = game_results[i].get('scoreboard').get('score')
-                        if score.get('away') < score.get('home'):
-                            g[j].change_results(1)
-                            Games[g[j].get_gameid] = g[j]
-                        else:
-                            g[j].change_results(2)
-
-    for i in range(len(g)):                                             #gets bets for all finished games
-        game = g[i]
-        if game.get_results != 0:
-            bets = bets + get_game_bet_db(game.get_gameid())
-
-
-    for i in range(len(bets)):                                          #allots money based on finished games
-        bet = bets[i]
-        gameid = bet.get_id()
-        if Games[gameid] == 1 and bet.get_team == Games[gameid].get_hometeam:
-            temp_player = get_player_db(bet.get_playerid())
-            temp_player.change_money(bet.get_amount() * (1 + bet.get_odds))
-        elif Games[gameid] == 2 and bet.get_team == Games[gameid].get_awayteam:
-            temp_player = get_player_db(bet.get_playerid())
-            temp_player.change_money(bet.get_amount() * (1 + bet.get_odds))
+    channel = client.get_channel(channelkey)
+    #await channel.send('Updating Odds'
 
     apidata = {'success': True, 'data': [{'id': '615244c04bcf4e42124695a65588b2dd', 'sport_key': 'basketball_nba', 'sport_nice': 'NBA', 'teams': ['Los Angeles Clippers', 'Phoenix Suns'], 'commence_time': 1624410600, 'home_team': 'Phoenix Suns',
     'sites': [{'site_key': 'bookmaker', 'site_nice': 'Bookmaker', 'last_update': 1624392595, 'odds': {'h2h': [2.55, 1.56]}},
@@ -376,5 +338,70 @@ async def update():
         home_odds = round(home_odds / len(sitedata), 2)
         away_odds = round(away_odds / len(sitedata), 2)
         Games[gamedata.get('id')] = Game(gamedata.get('id'), int(gamedata.get('commence_time')), gamedata.get('teams')[1], gamedata.get('teams')[0], home_odds, away_odds)
+
+    gamedata = {"status":200,
+    "time":"2021-06-28T21:17:52.426Z",
+    "games":1,"skip":0,
+    "results":[
+        {"schedule":{"date":"2021-06-23T01:00:00.000Z","tbaTime":False},
+        "summary":"Los Angeles Clippers @ Phoenix Suns",
+        "details":{"league":"NBA","seasonType":"postseason","season":2020,"conferenceGame":True,"divisionGame":True},
+        "status":"final",
+        "teams":{"away":{"team":"Los Angeles Clippers","location":"Los Angeles","mascot":"Clippers","abbreviation":"LAC","conference":"Western","division":"Pacific"},"home":{"team":"Phoenix Suns","location":"Phoenix","mascot":"Suns","abbreviation":"PHX","conference":"Western","division":"Pacific"}},
+        "lastUpdated":"2021-06-23T04:04:50.076Z",
+        "gameId":264995,
+        "venue":{"name":"Phoenix Suns Arena","city":"Phoenix","state":"AZ","neutralSite":False},
+        "odds":[{"spread":{"open":{"away":6,"home":-6,"awayOdds":-115,"homeOdds":-105},"current":{"away":4.5,"home":-4.5,"awayOdds":-110,"homeOdds":-115}},"moneyline":{"open":{"awayOdds":199,"homeOdds":-239},"current":{"awayOdds":165,"homeOdds":-188}},"total":{"open":{"total":224,"overOdds":-110,"underOdds":-110},"current":{"total":223,"overOdds":-110,"underOdds":-110}},"openDate":"2021-06-21T13:14:00.367Z","lastUpdated":"2021-06-23T01:16:58.737Z"}],
+        "scoreboard":{"score":{"away":103,"home":104,"awayPeriods":[22,25,24,32],"homePeriods":[25,23,27,29]},"currentPeriod":4,"periodTimeRemaining":"0:00"}}]}\
+
+    gamedata.get('results')[0].get('scoreboard').get('score').get('home')
+    g = list(Games.values())
+    bets = []
+    game_results = gamedata.get('results')
+    for i in range(len(game_results)):                                  #changes results of all finished games
+        for j in range(len(g)):
+            time = datetime.datetime.strptime(game_results[i].get('schedule').get('date')[0:10], '%Y-%m-%d')
+            time = time - datetime.timedelta(days = 1)
+            time = str(time)[0:10]
+            if time == datetime.datetime.fromtimestamp(g[j].get_time()).strftime('%Y-%m-%d'):
+                teams = game_results[i].get('teams')
+                if teams.get('away').get('team') == g[j].get_awayteam():
+                    if teams.get('home').get('team') == g[j].get_hometeam():
+                        score = game_results[i].get('scoreboard').get('score')
+                        if score.get('away') < score.get('home'):
+                            g[j].change_result(1)
+                            Games[g[j].get_gameid] = g[j] 
+                        else:
+                            g[j].change_result(2)
+
+    for i in range(len(g)):                                             #gets bets for all finished games
+        game = g[i]
+        if game.get_result() != 0:
+            bets = bets + list(get_game_bets_db(game.get_gameid()))
+
+    print(bets)
+    for i in range(len(bets)):                                          #allots money based on finished games
+        bet = bets[i]
+        gameid = bet.get_gameid()
+        temp_player = get_player_db(bet.get_playerid())
+        val = bet.get_amount() * (1 + bet.get_odds())
+        playerid = temp_player.get_id()
+
+        print(Games[gameid].get_result())
+        print(bet.get_team())
+        print(Games[gameid].get_hometeam())
+        print(Games[gameid].get_awayteam())
+
+
+        if Games[gameid].get_result() == 1 and bet.get_team() == Games[gameid].get_hometeam():
+            temp_player.change_money(val)
+            await channel.send(playerid + ' has won ' + str(val) + ' betting on ' + bet.get_team())
+        elif Games[gameid].get_result() == 2 and bet.get_team() == Games[gameid].get_awayteam():
+            temp_player.change_money(val)
+            await channel.send(playerid + ' has won ' + str(val) + ' betting on ' + bet.get_team())
+        else:
+            await channel.send(playerid + ' has lost ' + bet.amount() + ' betting on ' + bet.get_team())
+        update_player_db(temp_player)
+        remove_bet_db(bet)
 
 client.run(TOKEN)
