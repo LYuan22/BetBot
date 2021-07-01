@@ -8,7 +8,7 @@ from discord.ext import tasks
 import datetime
 import sqlite3
 from Classes import Player, Bet, Game
-from API_data import get_games, get_odds
+from API_data import get_results, get_odds
 
 #leaderboard
 #adding money for merits or something idk - admin only commands (also remove money)
@@ -28,6 +28,7 @@ channelkey = int(os.getenv('channel'))
 #creating dictionary of players, will wipe when bot is shut down. 
 Games = {}
 Bets = []
+odds_hours_counter = 0
 
 conn = sqlite3.connect('players.db')
 c = conn.cursor()
@@ -94,8 +95,9 @@ def new_player(id):
 async def on_ready():
     print('We have logged in as {0.user}'.format(client))
     channel = client.get_channel(channelkey)
-    #await channel.send('ALIVE')
-    update.start()
+    await channel.send('ALIVE')
+    update_bets.start()
+    update_odds.start()
 
 async def print_results(name, player, win, amount):
     channel = client.get_channel(channelkey)
@@ -279,53 +281,12 @@ async def on_message(message):
 
 
 @tasks.loop(hours = 2)                                  #only 500 updates a month (not trying to pay to get more)
-async def update():
-    #apidata = get_odds(apikey)
+async def update_odds():
+    api_odds_data = get_odds(apikey)
     channel = client.get_channel(channelkey)
-    #await channel.send('Updating Odds'
+    await channel.send('Updating Odds')
 
-    apidata = {'success': True, 'data': [{'id': '615244c04bcf4e42124695a65588b2dd', 'sport_key': 'basketball_nba', 'sport_nice': 'NBA', 'teams': ['Los Angeles Clippers', 'Phoenix Suns'], 'commence_time': 1624410600, 'home_team': 'Phoenix Suns',
-    'sites': [{'site_key': 'bookmaker', 'site_nice': 'Bookmaker', 'last_update': 1624392595, 'odds': {'h2h': [2.55, 1.56]}},
-    {'site_key': 'fanduel', 'site_nice': 'FanDuel', 'last_update': 1624392567, 'odds': {'h2h': [2.54, 1.54]}},
-    {'site_key': 'betmgm', 'site_nice': 'BetMGM', 'last_update': 1624392527, 'odds': {'h2h': [2.55, 1.53]}},
-    {'site_key': 'bovada', 'site_nice': 'Bovada', 'last_update': 1624392352, 'odds': {'h2h': [2.55, 1.57]}},
-    {'site_key': 'williamhill_us', 'site_nice': 'William Hill (US)', 'last_update': 1624392464, 'odds': {'h2h': [2.65, 1.54]}},
-    {'site_key': 'betonlineag', 'site_nice': 'BetOnline.ag', 'last_update': 1624392499, 'odds': {'h2h': [2.63, 1.54]}},
-    {'site_key': 'gtbets', 'site_nice': 'GTbets', 'last_update': 1624392487, 'odds': {'h2h': [2.6, 1.53]}},
-    {'site_key': 'sugarhouse', 'site_nice': 'SugarHouse', 'last_update': 1624392430,'odds': {'h2h': [2.55, 1.55]}},
-    {'site_key': 'barstool', 'site_nice': 'Barstool Sportsbook', 'last_update': 1624392456, 'odds': {'h2h': [2.55, 1.55]}},
-    {'site_key': 'betrivers', 'site_nice': 'BetRivers', 'last_update': 1624392466, 'odds': {'h2h': [2.55, 1.55]}},
-    {'site_key': 'draftkings', 'site_nice': 'DraftKings', 'last_update': 1624392411, 'odds': {'h2h': [2.55, 1.55]}},
-    {'site_key': 'unibet', 'site_nice': 'Unibet', 'last_update': 1624392550, 'odds': {'h2h': [2.55, 1.55]}},
-    {'site_key': 'betfair', 'site_nice': 'Betfair', 'last_update': 1624392399, 'odds': {'h2h': [2.72, 1.57], 'h2h_lay': [2.74, 1.58]}},
-    {'site_key': 'lowvig', 'site_nice': 'LowVig.ag', 'last_update': 1624392366, 'odds': {'h2h': [2.65, 1.53]}},
-    {'site_key': 'caesars', 'site_nice': 'Caesars', 'last_update': 1624392481, 'odds': {'h2h': [2.65, 1.54]}},
-    {'site_key': 'mybookieag', 'site_nice': 'MyBookie.ag', 'last_update': 1624392310, 'odds': {'h2h': [2.6, 1.53]}},
-    {'site_key': 'foxbet', 'site_nice': 'FOX Bet', 'last_update': 1624392620, 'odds': {'h2h': [2.45, 1.53]}},
-    {'site_key': 'intertops', 'site_nice': 'Intertops', 'last_update': 1624392598, 'odds': {'h2h': [2.65, 1.53]}}], 'sites_count': 18},
-    
-    {'id': '97984b72c5bd1b4e47594b79c1d105d8', 'sport_key': 'basketball_nba', 'sport_nice': 'NBA', 'teams': ['Atlanta Hawks', 'Milwaukee Bucks'], 'commence_time': 1624495200, 'home_team': 'Milwaukee Bucks',
-    'sites': [{'site_key': 'fanduel', 'site_nice': 'FanDuel', 'last_update': 1624392567, 'odds': {'h2h': [3.8, 1.29]}},
-    {'site_key': 'betfair', 'site_nice': 'Betfair', 'last_update': 1624392399, 'odds': {'h2h': [3.7, 1.35], 'h2h_lay': [3.9, 1.37]}},
-    {'site_key': 'betmgm', 'site_nice': 'BetMGM', 'last_update': 1624392527, 'odds': {'h2h': [3.3, 1.36]}},
-    {'site_key': 'betrivers', 'site_nice': 'BetRivers', 'last_update': 1624392466, 'odds': {'h2h': [3.35, 1.35]}},
-    {'site_key': 'sugarhouse', 'site_nice': 'SugarHouse', 'last_update': 1624392430, 'odds': {'h2h': [3.35, 1.35]}},
-    {'site_key': 'betonlineag', 'site_nice': 'BetOnline.ag', 'last_update': 1624392499, 'odds': {'h2h': [3.55, 1.32]}},
-    {'site_key': 'barstool', 'site_nice': 'Barstool Sportsbook', 'last_update': 1624392456, 'odds': {'h2h': [3.35, 1.35]}},
-    {'site_key': 'unibet', 'site_nice': 'Unibet', 'last_update': 1624392550, 'odds': {'h2h': [3.35, 1.35]}},
-    {'site_key': 'williamhill_us', 'site_nice': 'William Hill (US)', 'last_update': 1624392464, 'odds': {'h2h': [3.55, 1.32]}},
-    {'site_key': 'draftkings', 'site_nice': 'DraftKings', 'last_update': 1624392411, 'odds': {'h2h': [3.35, 1.35]}},
-    {'site_key': 'lowvig', 'site_nice': 'LowVig.ag', 'last_update': 1624392366, 'odds': {'h2h': [3.55, 1.33]}},
-    {'site_key': 'bovada', 'site_nice': 'Bovada', 'last_update': 1624392352, 'odds': {'h2h': [3.6, 1.31]}},
-    {'site_key': 'gtbets', 'site_nice': 'GTbets', 'last_update': 1624392487, 'odds': {'h2h': [3.45, 1.32]}},
-    {'site_key': 'foxbet', 'site_nice': 'FOX Bet', 'last_update': 1624392620, 'odds': {'h2h': [3.4, 1.3]}},
-    {'site_key': 'caesars', 'site_nice': 'Caesars', 'last_update': 1624392481, 'odds': {'h2h': [3.6, 1.31]}},
-    {'site_key': 'pointsbetus', 'site_nice': 'PointsBet (US)', 'last_update': 1624392488, 'odds': {'h2h': [3.4, 1.32]}},
-    {'site_key': 'bookmaker', 'site_nice': 'Bookmaker', 'last_update': 1624392595, 'odds': {'h2h': [3.45, 1.33]}},
-    {'site_key': 'mybookieag', 'site_nice': 'MyBookie.ag', 'last_update': 1624392310, 'odds': {'h2h': [3.5, 1.32]}},
-    {'site_key': 'intertops', 'site_nice': 'Intertops', 'last_update': 1624392598, 'odds': {'h2h': [3.6, 1.31]}}], 'sites_count': 19}]}
-
-    data = apidata.get('data')
+    data = api_odds_data.get('data')
     for i in range(len(data)):
         gamedata = data[i]
         sitedata = gamedata.get('sites')
@@ -333,35 +294,34 @@ async def update():
         away_odds = 0
         for j in range(len(sitedata)):
             h2hodds = sitedata[j].get('odds').get('h2h')
-            home_odds = home_odds + h2hodds[1]
-            away_odds = away_odds + h2hodds[0]
+            home_odds += h2hodds[1]
+            away_odds += h2hodds[0]
         home_odds = round(home_odds / len(sitedata), 2)
         away_odds = round(away_odds / len(sitedata), 2)
         Games[gamedata.get('id')] = Game(gamedata.get('id'), int(gamedata.get('commence_time')), gamedata.get('teams')[1], gamedata.get('teams')[0], home_odds, away_odds)
+        odds_hours_counter += 1
+        if odds_hours_counter == 12:
+            Games = {}
+            odds_hours_counter = 0
 
-    gamedata = {"status":200,
-    "time":"2021-06-28T21:17:52.426Z",
-    "games":1,"skip":0,
-    "results":[
-        {"schedule":{"date":"2021-06-23T01:00:00.000Z","tbaTime":False},
-        "summary":"Los Angeles Clippers @ Phoenix Suns",
-        "details":{"league":"NBA","seasonType":"postseason","season":2020,"conferenceGame":True,"divisionGame":True},
-        "status":"final",
-        "teams":{"away":{"team":"Los Angeles Clippers","location":"Los Angeles","mascot":"Clippers","abbreviation":"LAC","conference":"Western","division":"Pacific"},"home":{"team":"Phoenix Suns","location":"Phoenix","mascot":"Suns","abbreviation":"PHX","conference":"Western","division":"Pacific"}},
-        "lastUpdated":"2021-06-23T04:04:50.076Z",
-        "gameId":264995,
-        "venue":{"name":"Phoenix Suns Arena","city":"Phoenix","state":"AZ","neutralSite":False},
-        "odds":[{"spread":{"open":{"away":6,"home":-6,"awayOdds":-115,"homeOdds":-105},"current":{"away":4.5,"home":-4.5,"awayOdds":-110,"homeOdds":-115}},"moneyline":{"open":{"awayOdds":199,"homeOdds":-239},"current":{"awayOdds":165,"homeOdds":-188}},"total":{"open":{"total":224,"overOdds":-110,"underOdds":-110},"current":{"total":223,"overOdds":-110,"underOdds":-110}},"openDate":"2021-06-21T13:14:00.367Z","lastUpdated":"2021-06-23T01:16:58.737Z"}],
-        "scoreboard":{"score":{"away":103,"home":104,"awayPeriods":[22,25,24,32],"homePeriods":[25,23,27,29]},"currentPeriod":4,"periodTimeRemaining":"0:00"}}]}\
 
-    gamedata.get('results')[0].get('scoreboard').get('score').get('home')
+
+
+@tasks.loop(hours = 2)
+async def update_bets():
+    channel = client.get_channel(channelkey)
+
+    current_time = datetime.datetime.now()
+    current_time = current_time.strftime('%Y-%m-%d')
+    api_results_data = get_results(current_time)
+
     g = list(Games.values())
     bets = []
-    game_results = gamedata.get('results')
+    game_results = api_results_data.get('results')
     for i in range(len(game_results)):                                  #changes results of all finished games
         for j in range(len(g)):
             time = datetime.datetime.strptime(game_results[i].get('schedule').get('date')[0:10], '%Y-%m-%d')
-            time = time - datetime.timedelta(days = 1)
+            time -= datetime.timedelta(days = 1)
             time = str(time)[0:10]
             if time == datetime.datetime.fromtimestamp(g[j].get_time()).strftime('%Y-%m-%d'):
                 teams = game_results[i].get('teams')
@@ -377,21 +337,14 @@ async def update():
     for i in range(len(g)):                                             #gets bets for all finished games
         game = g[i]
         if game.get_result() != 0:
-            bets = bets + list(get_game_bets_db(game.get_gameid()))
+            bets += list(get_game_bets_db(game.get_gameid()))
 
-    print(bets)
     for i in range(len(bets)):                                          #allots money based on finished games
         bet = bets[i]
         gameid = bet.get_gameid()
         temp_player = get_player_db(bet.get_playerid())
         val = bet.get_amount() * (1 + bet.get_odds())
         playerid = temp_player.get_id()
-
-        print(Games[gameid].get_result())
-        print(bet.get_team())
-        print(Games[gameid].get_hometeam())
-        print(Games[gameid].get_awayteam())
-
 
         if Games[gameid].get_result() == 1 and bet.get_team() == Games[gameid].get_hometeam():
             temp_player.change_money(val)
@@ -403,5 +356,6 @@ async def update():
             await channel.send(playerid + ' has lost ' + bet.amount() + ' betting on ' + bet.get_team())
         update_player_db(temp_player)
         remove_bet_db(bet)
+
 
 client.run(TOKEN)
