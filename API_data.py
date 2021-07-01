@@ -2,11 +2,13 @@ import requests
 import json
 import datetime
 
-def get_games(time):
+
+
+def get_results(time):
 
     url = "https://sportspage-feeds.p.rapidapi.com/games"
 
-    querystring = {"date":"2021-06-22","league":"NBA","status":"final"}
+    querystring = {"date":time,"league":"NBA","status":"final"}
 
     headers = {
         'x-rapidapi-key': "041e3a1151msh777ef8d0a2f1772p171c27jsn6932e0f4b92c",
@@ -14,7 +16,7 @@ def get_games(time):
         }
 
     response = requests.request("GET", url, headers=headers, params=querystring)
-    return response
+    return json.loads(response.text)
 
 def get_odds(apikey):
     key = 'basketball_nba'
