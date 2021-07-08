@@ -5,6 +5,7 @@ This is a Discord Bot that allows users to place bets on NBA Games, and uses a d
 **Commands**
 
 $stats
+
 ![image](https://user-images.githubusercontent.com/10456113/124977064-08f6a080-dffe-11eb-9670-032132a080cb.png)
 
 $odds
