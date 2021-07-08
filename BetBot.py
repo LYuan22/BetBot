@@ -1,7 +1,5 @@
 import discord
 import os
-import requests
-import json
 import random
 from dotenv import load_dotenv
 from discord.ext import tasks
