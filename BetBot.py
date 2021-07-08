@@ -325,7 +325,10 @@ async def update_bets():
     bets = []
     #Getting data from Sportspage API
     game_results = api_results_data.get('results')
-    for i in range(len(game_results)):                                  #changes results of all finished games
+
+
+    #Loop checks if games are finished
+    for i in range(len(game_results)):
         for j in range(len(g)):
             time = datetime.datetime.strptime(game_results[i].get('schedule').get('date')[0:10], '%Y-%m-%d')
             time -= datetime.timedelta(days = 1)
@@ -341,13 +344,14 @@ async def update_bets():
                         else:
                             g[j].change_result(2)
 
-    for i in range(len(g)):                                             #gets bets for all finished games
+    #Gets all bets for finished games
+    for i in range(len(g)):
         game = g[i]
         if game.get_result() != 0:
             bets += list(get_game_bets_db(game.get_gameid()))
 
 
-    #allots money based on finished games
+    #allots money based on finished games, removes bets
     for i in range(len(bets)):                                      
         bet = bets[i]
         gameid = bet.get_gameid()
