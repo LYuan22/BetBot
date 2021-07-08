@@ -15,6 +15,12 @@ from API_data import get_results, get_odds
 
 #Figure out how to tell when game ends
 
+
+
+Games = {}
+Bets = []
+odds_hours_counter = 0
+
 client = discord.Client()
 
 load_dotenv()
@@ -23,10 +29,6 @@ apikey = os.getenv('api_key')
 channelkey = int(os.getenv('channel'))
 
 
-#creating dictionary of players, will wipe when bot is shut down. 
-Games = {}
-Bets = []
-odds_hours_counter = 0
 
 conn = sqlite3.connect('players.db')
 c = conn.cursor()
@@ -95,6 +97,7 @@ async def on_ready():
     channel = client.get_channel(channelkey)
     await channel.send('ALIVE')
     update_bets.start()
+    Games = {}
     update_odds.start()
 
 async def print_results(name, player, win, amount):
@@ -139,6 +142,8 @@ async def on_message(message):
                 else:
                     temp_player.change_money(amount)
                     update_player_db(temp_player)
+                    await channel.send('We have added ' + str(amount) + ' to ' + str(member) + '\'s account')
+                    await channel.send(str(member) + ' now has ' + str(temp_player.get_money()))
         else:
             await channel.send('You do not have permissions for that command')
         
@@ -158,9 +163,9 @@ async def on_message(message):
         g = list(Games.values())
         for i in range(len(g)):
             await channel.send(g[i].get_hometeam() + ' vs ' + g[i].get_awayteam() + '\n' +
-                                'Gameid: ' + g[i].get_gameid() + '\n' + 
-                                str(datetime.datetime.fromtimestamp(g[i].get_time()).strftime('%m-%d-%y   %H:%M'))+ '\n' +
-                                str(g[i].get_homeodds()) + '            ' + str(g[i].get_awayodds()) + '\n\n') 
+                                str(g[i].get_homeodds()) + '                       ' + str(g[i].get_awayodds()) + '\n' +
+                                'GameID: ' + g[i].get_gameid() + '\n' + 
+                                str(datetime.datetime.fromtimestamp(g[i].get_time()).strftime('%m-%d-%y   %H:%M'))+ '\n') 
             #max 22 characters for team name
 
 
@@ -297,10 +302,6 @@ async def update_odds():
         home_odds = round(home_odds / len(sitedata), 2)
         away_odds = round(away_odds / len(sitedata), 2)
         Games[gamedata.get('id')] = Game(gamedata.get('id'), int(gamedata.get('commence_time')), gamedata.get('teams')[1], gamedata.get('teams')[0], home_odds, away_odds)
-        odds_hours_counter += 1
-        if odds_hours_counter == 12:
-            Games = {}
-            odds_hours_counter = 0
 
 
 
