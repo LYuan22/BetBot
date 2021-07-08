@@ -1,9 +1,8 @@
 import requests
 import json
-import datetime
 
 
-
+#SportsPageFeeds API
 def get_results(time):
 
     url = "https://sportspage-feeds.p.rapidapi.com/games"
@@ -18,6 +17,8 @@ def get_results(time):
     response = requests.request("GET", url, headers=headers, params=querystring)
     return json.loads(response.text)
 
+
+#TheOddsApi
 def get_odds(apikey):
     key = 'basketball_nba'
     response = requests.get('http://api.the-odds-api.com/v3/odds', params = {'api_key': apikey, 'sport': key, 'region': 'us', 'mkt': 'h2h'})

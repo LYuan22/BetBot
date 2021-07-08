@@ -288,13 +288,14 @@ async def on_message(message):
                                     + '\nCoin Tosses Won: ' + str(temp_player.get_coinwins()) + '\nCoin Tosses Lost: ' + str(temp_player.get_coinlosses()) + '\nCoin Toss Winrate: ' + str(round((temp_player.get_coinwinrate() * 100), 2)) + '%'
                                     + '\nRevives: ' + str(temp_player.get_revives()))
 
-
-@tasks.loop(hours = 2)                                  #only 500 updates a month (not trying to pay to get more)
+#only 500 updates a month (not trying to pay to get more)
+@tasks.loop(hours = 2)      
 async def update_odds():
     api_odds_data = get_odds(apikey)
     channel = client.get_channel(channelkey)
     await channel.send('Updating Odds')
 
+    #grabbing data from TheOddsApi
     data = api_odds_data.get('data')
     for i in range(len(data)):
         gamedata = data[i]
@@ -322,6 +323,7 @@ async def update_bets():
 
     g = list(Games.values())
     bets = []
+    #Getting data from Sportspage API
     game_results = api_results_data.get('results')
     for i in range(len(game_results)):                                  #changes results of all finished games
         for j in range(len(g)):
