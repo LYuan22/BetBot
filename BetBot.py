@@ -312,7 +312,6 @@ async def update_odds():
 
 
 
-
 @tasks.loop(hours = 2)
 async def update_bets():
     channel = client.get_channel(channelkey)
