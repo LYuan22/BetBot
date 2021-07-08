@@ -2,5 +2,4 @@
 players.db
 bets.db 
 .vscode/settings.json
-__pycache__/Classes.cpython-39.pyc
-__pycache__/API_data.cpython-39.pyc
+__pycache__
