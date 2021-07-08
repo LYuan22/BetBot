@@ -16,29 +16,30 @@ from API_data import get_results, get_odds
 #Figure out how to tell when game ends
 
 
-
+#Creates Dictionary of Games
 Games = {}
-Bets = []
-odds_hours_counter = 0
 
 client = discord.Client()
 
+#Grab keys from .env file
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 apikey = os.getenv('api_key')
 channelkey = int(os.getenv('channel'))
 
 
-
+#Creating table for players
 conn = sqlite3.connect('players.db')
 c = conn.cursor()
 c.execute('''CREATE TABLE IF NOT EXISTS
 players(playerid TEXT PRIMARY KEY, money INTEGER, betwins INTEGER, betlosses INTEGER,
 coinwins INTEGER, coinlosses INTEGER, revives INTEGER)''')
 
+#creating table for bets
 c.execute('''CREATE TABLE IF NOT EXISTS
 bets(amount INTEGER, gameid TEXT, team TEXT, betodds FLOAT, playerid TEXT)''')
 
+#takes in id returns player with that id from database
 def get_player_db(id):
     c.execute('SELECT * from players WHERE playerid = :id', {'id': id}) 
     data = c.fetchall()
@@ -48,6 +49,7 @@ def get_player_db(id):
         player = data[0]
         return Player(player[0], player[1], player[2], player[3], player [4], player [5], player [6])
 
+#send a player in to update/create player in database
 def update_player_db(player):
     dict = {'id': str(player.get_id()), 'money': player.get_money(), 'betwins': player.get_betwins(),
                     'betlosses': player.get_betlosses(), 'coinwins': player.get_coinwins(),
@@ -62,7 +64,7 @@ def update_player_db(player):
             c.execute('''UPDATE players SET money = :money, betwins = :betwins, betlosses = :betlosses,
                     coinwins = :coinwins, coinlosses = :coinlosses, revives = :revives WHERE playerid = :id''', dict)
 
-
+#takes a gameid and returns all bets 
 def get_game_bets_db(gameid):
     c.execute('SELECT * from bets WHERE gameid = :gameid', {'gameid': gameid})
     data = c.fetchall()
@@ -75,18 +77,21 @@ def get_game_bets_db(gameid):
             list.append(Bet(inc[4], inc[0], inc[1], inc[2], inc[3]))
         return list
 
+#inserts a bet into the database
 def add_bet_db(bet):
     with conn:
         c.execute('INSERT INTO bets VALUES(:amount, :gameid, :team, :betodds, :playerid)',
         {'playerid': bet.get_playerid(), 'amount': bet.get_amount(), 'gameid': bet.get_gameid(), 'team': bet.get_team(), 'betodds': bet.get_odds()}
         )
 
+#removes a bet from the database (after bet has been completed)
 def remove_bet_db(bet):
     with conn:
-        c.execute('DELETE from bets WHERE playerid = :playerid AND gameid = :gameid AND amount = :amount AND team = :team', {'playerid': bet.get_playerid(), 'amount': bet.get_amount(), 'gameid': bet.get_gameid(), 'team': bet.get_team()})
+        c.execute('DELETE from bets WHERE playerid = :playerid AND gameid = :gameid AND amount = :amount AND team = :team',
+        {'playerid': bet.get_playerid(), 'amount': bet.get_amount(), 'gameid': bet.get_gameid(), 'team': bet.get_team()})
 
 
-
+#function to create a new player given an id
 def new_player(id):
     return Player(id, 1000, 0, 0, 0, 0, 0)
     
@@ -97,9 +102,9 @@ async def on_ready():
     channel = client.get_channel(channelkey)
     await channel.send('ALIVE')
     update_bets.start()
-    Games = {}
     update_odds.start()
 
+#after money has been changed, print_results prints either win or lost money into discord
 async def print_results(name, player, win, amount):
     channel = client.get_channel(channelkey)
     if win == True:
@@ -107,6 +112,7 @@ async def print_results(name, player, win, amount):
     else:
         await channel.send(name + ' has lost $' + str(amount) + '. ' + name + ' now has $' + str(player.get_money()))
 
+#check is used to check if yes or no for bets
 async def check(msg):
     return msg.author == c.author and msg.channel == c.channel and \
     msg.content.lower() in ['y', 'n']
@@ -119,13 +125,14 @@ async def on_message(message):
     if message.author == client.user:                   #checks that the bot isn't doing stuff on its own messages
         return
 
-
+    #gets all information from message
     content = message.content
     author = message.author
     authorid = str(author)
     name = author.name
     channel = message.channel
     word_arr = content.split()
+
 
     if content.startswith('$editmoney'): # ADMIN ONLY COMMAND $editmoney amount person
         if author.guild_permissions.administrator == True:
@@ -147,7 +154,7 @@ async def on_message(message):
         else:
             await channel.send('You do not have permissions for that command')
         
-
+    #revives if $0
     elif content.startswith('$revive'):
         temp_player = get_player_db(authorid)
         if temp_player != None:
@@ -159,21 +166,20 @@ async def on_message(message):
                 await channel.send('You are not at $0, you do not need a revive')
 
 
-    elif content.startswith('$odds'):                        #prints odds with teams and time
+    #prints odds with teams and time
+    elif content.startswith('$odds'):
         g = list(Games.values())
         for i in range(len(g)):
             await channel.send(g[i].get_hometeam() + ' vs ' + g[i].get_awayteam() + '\n' +
                                 str(g[i].get_homeodds()) + '                       ' + str(g[i].get_awayodds()) + '\n' +
                                 'GameID: ' + g[i].get_gameid() + '\n' + 
                                 str(datetime.datetime.fromtimestamp(g[i].get_time()).strftime('%m-%d-%y   %H:%M'))+ '\n') 
-            #max 22 characters for team name
 
 
 
 
-
-
-    elif content.startswith('$bet'):                      #initiates bet ($bet amount gameid team)
+    #initiates bet ($bet amount gameid team)
+    elif content.startswith('$bet'): 
         
         if len(word_arr) != 4 or word_arr[1].isnumeric() == False or isinstance(word_arr[2], str) == False or isinstance(word_arr[3], str) == False:
             await channel.send('format: $bet amount gameid team')
@@ -237,8 +243,8 @@ async def on_message(message):
 
 
 
-
-    elif content.startswith('$coinflip'):                 #coinflip ($coinflip [amount] [h/t])
+    #coinflip ($coinflip [amount] [h/t])
+    elif content.startswith('$coinflip'):
         if ((len(word_arr)) != 3) or word_arr[1].isnumeric() == False or (word_arr[2] == 'heads' or word_arr[2] == 'tails') == False:                               #format checker
             await channel.send('format: $coinflip amount heads/tails')
             return
@@ -273,7 +279,7 @@ async def on_message(message):
 
 
 
-
+    #prints stats in discord
     elif content.startswith('$stats'):
         temp_player = get_player_db(authorid)
         if temp_player == None:                     #creates player if doesnt exist yet
@@ -338,7 +344,9 @@ async def update_bets():
         if game.get_result() != 0:
             bets += list(get_game_bets_db(game.get_gameid()))
 
-    for i in range(len(bets)):                                          #allots money based on finished games
+
+    #allots money based on finished games
+    for i in range(len(bets)):                                      
         bet = bets[i]
         gameid = bet.get_gameid()
         temp_player = get_player_db(bet.get_playerid())
