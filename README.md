@@ -1,6 +1,6 @@
 # BetBot
 
-This is a Discord Bot that allows users to place bets on NBA Games, and uses a database to keep track of games, bets, and users. Users are able to bet fake money through a list of discord commands. 
+This is a Discord Bot that allows users to place bets on NBA Games, and uses a database to keep track of games, bets, and users. Users are able to bet fake money using the $bet command or gamble their money using $coinflip. 
 
 **Commands**
 
