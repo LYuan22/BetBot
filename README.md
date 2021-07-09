@@ -3,9 +3,13 @@
 This is a Discord Bot that allows users to place bets on NBA Games, and uses a database to keep track of games, bets, and users. Users are able to bet fake money using the $bet command or gamble their money using $coinflip. 
 
 **SETUP**
+
 Create a txt file and name it .env and place it in the same file as the rest of the files.
+
 DISCORD_TOKEN - Create a Bot through discord developer portal and add it to your channel. After this copy the token from the Bot website and set it to Discord_Token = 'token' 
+
 api_key - go on The Odds API and get your free key and set api_key = the key u get
+
 channel - copy channel id from discord after turn developer settings on and set channel = the number u get
 
 ![env file example](https://user-images.githubusercontent.com/10456113/125017369-ff425c80-e040-11eb-8512-1637cacbbab8.png)
