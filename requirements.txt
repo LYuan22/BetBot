@@ -3,3 +3,5 @@
  random
  datetime
  sqlite3
+ requests
+ json
