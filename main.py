@@ -72,8 +72,7 @@ def get_game_bets_db(gameid):
     if data == ():
         return None
     else:
-        for i in range(len(data)):
-            inc = data[i]
+        for inc in data:
             list.append(Bet(inc[4], inc[0], inc[1], inc[2], inc[3]))
         return list
 
@@ -169,11 +168,11 @@ async def on_message(message):
     #prints odds with teams and time
     elif content.startswith('$odds'):
         g = list(Games.values())
-        for i in range(len(g)):
-            await channel.send(g[i].get_hometeam() + ' vs ' + g[i].get_awayteam() + '\n' +
-                                str(g[i].get_homeodds()) + '                       ' + str(g[i].get_awayodds()) + '\n' +
-                                'GameID: ' + g[i].get_gameid() + '\n' + 
-                                str(datetime.datetime.fromtimestamp(g[i].get_time()).strftime('%m-%d-%y   %H:%M'))+ '\n') 
+        for game in g:
+            await channel.send(game.get_hometeam() + ' vs ' + game.get_awayteam() + '\n' +
+                                str(game.get_homeodds()) + '                       ' + str(game.get_awayodds()) + '\n' +
+                                'GameID: ' + game.get_gameid() + '\n' + 
+                                str(datetime.datetime.fromtimestamp(game.get_time()).strftime('%m-%d-%y   %H:%M'))+ '\n') 
 
 
 
@@ -297,18 +296,17 @@ async def update_odds():
 
     #grabbing data from TheOddsApi
     data = api_odds_data.get('data')
-    for i in range(len(data)):
-        gamedata = data[i]
-        sitedata = gamedata.get('sites')
+    for game in data:
+        sitedata = game.get('sites')
         home_odds = 0
         away_odds = 0
-        for j in range(len(sitedata)):
-            h2hodds = sitedata[j].get('odds').get('h2h')
+        for j in sitedata:
+            h2hodds = j.get('odds').get('h2h')
             home_odds += h2hodds[1]
             away_odds += h2hodds[0]
         home_odds = round(home_odds / len(sitedata), 2)
         away_odds = round(away_odds / len(sitedata), 2)
-        Games[gamedata.get('id')] = Game(gamedata.get('id'), int(gamedata.get('commence_time')), gamedata.get('teams')[1], gamedata.get('teams')[0], home_odds, away_odds)
+        Games[game.get('id')] = Game(game.get('id'), int(game.get('commence_time')), game.get('teams')[1], game.get('teams')[0], home_odds, away_odds)
 
 
 
@@ -327,32 +325,30 @@ async def update_bets():
 
 
     #Loop checks if games are finished
-    for i in range(len(game_results)):
-        for j in range(len(g)):
-            time = datetime.datetime.strptime(game_results[i].get('schedule').get('date')[0:10], '%Y-%m-%d')
+    for game in game_results:
+        for j in g:
+            time = datetime.datetime.strptime(game.get('schedule').get('date')[0:10], '%Y-%m-%d')
             time -= datetime.timedelta(days = 1)
             time = str(time)[0:10]
-            if time == datetime.datetime.fromtimestamp(g[j].get_time()).strftime('%Y-%m-%d'):
-                teams = game_results[i].get('teams')
-                if teams.get('away').get('team') == g[j].get_awayteam():
-                    if teams.get('home').get('team') == g[j].get_hometeam():
-                        score = game_results[i].get('scoreboard').get('score')
+            if time == datetime.datetime.fromtimestamp(j.get_time()).strftime('%Y-%m-%d'):
+                teams = game.get('teams')
+                if teams.get('away').get('team') == j.get_awayteam():
+                    if teams.get('home').get('team') == j.get_hometeam():
+                        score = game.get('scoreboard').get('score')
                         if score.get('away') < score.get('home'):
-                            g[j].change_result(1)
-                            Games[g[j].get_gameid] = g[j] 
+                            j.change_result(1)
+                            Games[j.get_gameid] = j
                         else:
-                            g[j].change_result(2)
+                            j.change_result(2)
 
     #Gets all bets for finished games
-    for i in range(len(g)):
-        game = g[i]
+    for game in g:
         if game.get_result() != 0:
             bets += list(get_game_bets_db(game.get_gameid()))
 
 
     #allots money based on finished games, removes bets
-    for i in range(len(bets)):                                      
-        bet = bets[i]
+    for bet in bets:                                      
         gameid = bet.get_gameid()
         temp_player = get_player_db(bet.get_playerid())
         val = bet.get_amount() * (1 + bet.get_odds())
