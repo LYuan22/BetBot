@@ -12,7 +12,7 @@ api_key - go on The Odds API and get your free key and set api_key = the key u g
 
 channel - copy channel id from discord after turn developer settings on and set channel = the number u get
 
-![env file example](https://user-images.githubusercontent.com/10456113/125017369-ff425c80-e040-11eb-8512-1637cacbbab8.png)
+![env file example](https://user-images.githubusercontent.com/10456113/126706072-67f05567-5850-48a2-b02f-b453019b0f25.png)
 
 run pip install -r requirements.txt in your shell 
 
