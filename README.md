@@ -14,7 +14,7 @@ channel - copy channel id from discord after turn developer settings on and set 
 
 ![env file example](https://user-images.githubusercontent.com/10456113/125017369-ff425c80-e040-11eb-8512-1637cacbbab8.png)
 
-
+run pip install -r requirements.txt in your shell 
 
 **Commands**
 
