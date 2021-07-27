@@ -24,7 +24,8 @@ client = discord.Client()
 #Grab keys from .env file
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
-apikey = os.getenv('api_key')
+odds_key = os.getenv('odds_api_key')
+results_key = os.getenv('results_api_key')
 channelkey = int(os.getenv('channel'))
 
 
@@ -290,7 +291,7 @@ async def on_message(message):
 #only 500 updates a month (not trying to pay to get more)
 @tasks.loop(hours = 2)      
 async def update_odds():
-    api_odds_data = get_odds(apikey)
+    api_odds_data = get_odds(odds_key)
     channel = client.get_channel(channelkey)
     await channel.send('Updating Odds')
 
@@ -316,7 +317,7 @@ async def update_bets():
 
     current_time = datetime.datetime.now()
     current_time = current_time.strftime('%Y-%m-%d')
-    api_results_data = get_results(current_time)
+    api_results_data = get_results(results_key, current_time)
 
     g = list(Games.values())
     bets = []

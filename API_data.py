@@ -3,14 +3,14 @@ import json
 
 
 #SportsPageFeeds API
-def get_results(time):
+def get_results(results_key, time):
 
     url = "https://sportspage-feeds.p.rapidapi.com/games"
 
     querystring = {"date":time,"league":"NBA","status":"final"}
 
     headers = {
-        'x-rapidapi-key': "041e3a1151msh777ef8d0a2f1772p171c27jsn6932e0f4b92c",
+        'x-rapidapi-key': results_key,
         'x-rapidapi-host': "sportspage-feeds.p.rapidapi.com"
         }
 
@@ -19,8 +19,8 @@ def get_results(time):
 
 
 #TheOddsApi
-def get_odds(apikey):
+def get_odds(odds_key):
     key = 'basketball_nba'
-    response = requests.get('http://api.the-odds-api.com/v3/odds', params = {'api_key': apikey, 'sport': key, 'region': 'us', 'mkt': 'h2h'})
+    response = requests.get('http://api.the-odds-api.com/v3/odds', params = {'api_key': odds_key, 'sport': key, 'region': 'us', 'mkt': 'h2h'})
     json_data = json.loads(response.text)
     return json_data
