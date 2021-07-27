@@ -27,7 +27,7 @@ $stats
 
 $odds
 
-![image](https://user-images.githubusercontent.com/10456113/124977076-0dbb5480-dffe-11eb-8769-17745f4685f6.png)
+![1e459ade810a188712e9c6cda5500376](https://user-images.githubusercontent.com/10456113/127207385-a30c9a5b-117d-4ff0-8723-ccad04b82714.png)
 
 $bet amount gameid team
 
