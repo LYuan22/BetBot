@@ -8,11 +8,14 @@ Create a txt file and name it .env and place it in the same file as the rest of 
 
 DISCORD_TOKEN - Create a Bot through discord developer portal and add it to your channel. After this copy the token from the Bot website and set it to Discord_Token = 'token' 
 
-api_key - go on The Odds API and get your free key and set api_key = the key u get
+odds_api_key - go on The Odds API and get your free key and set odds_api_key = the key you get
+
+results_api_key - go on Sportspagefeed api and get your free key and set results_api_key = the key
 
 channel - copy channel id from discord after turn developer settings on and set channel = the number u get
 
-![env file example](https://user-images.githubusercontent.com/10456113/126706072-67f05567-5850-48a2-b02f-b453019b0f25.png)
+![7c718c7d357c5c44de7ce25044519329](https://user-images.githubusercontent.com/10456113/127204996-811fd25e-71ef-4453-974a-d2706937c096.png)
+
 
 run pip install -r requirements.txt in your shell 
 
